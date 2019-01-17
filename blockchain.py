@@ -1,7 +1,9 @@
 from functools import reduce
 from collections import OrderedDict
+import json
 
-from my_blockchain.hash_util import hash_str_256, hash_block
+# Import two functions from our hash_util.py file. Omit the ".py" in the import
+from hash_util import hash_str_256, hash_block
 
 # The reward we give to miners (for creating a new block)
 MINING_REWARD = 10
@@ -22,17 +24,90 @@ owner = "Aliaksei"
 participants = {"Aliaksei"}
 
 
+def load_data():
+    with open("resources/blockchain_db.txt", mode="r") as f:
+        # file_content = pickle.loads(f.read())
+        file_content = f.readlines()
+        global blockchain
+        global open_transactions
+        # blockchain = file_content["chain"]
+        # open_transactions = file_content["ot"]
+        blockchain = json.loads(file_content[0][:-1])
+        updated_blockchain = []
+        for block in blockchain:
+            updated_block = {
+                "previous_hash": block["previous_hash"],
+                "index": block["index"],
+                "proof": block["proof"],
+                "transactions": [
+                    OrderedDict(
+                        [
+                            ("sender", tx["sender"]),
+                            ("recipient", tx["recipient"]),
+                            ("amount", tx["amount"])
+                        ]
+                    )
+                    for tx in block["transactions"]
+                ]
+            }
+            updated_blockchain.append(updated_block)
+        blockchain = updated_blockchain
+        open_transactions = json.loads(file_content[1])
+        updated_transactions = []
+        for tx in open_transactions:
+            updated_transaction = OrderedDict(
+                [
+                    ("sender", tx["sender"]),
+                    ("recipient", tx["recipient"]),
+                    ("amount", tx["amount"])
+                ]
+            )
+            updated_transactions.append(updated_transaction)
+        open_transactions = updated_transactions
+
+
+load_data()
+
+
+def save_data():
+    with open("resources/blockchain_db.txt", mode="w") as f:
+        f.write(json.dumps(blockchain))
+        f.write("\n")
+        f.write(json.dumps(open_transactions))
+        # save_data_format = {
+        #     "chain": blockchain,
+        #     "ot": open_transactions
+        # }
+        # f.write(pickle.dumps(save_data_format))
+
+
 def valid_proof(transactions, last_hash, proof):
+    """ Validate a proof of work number and see if it solves the puzzle algorithm (two leading 0s)
+    :argument:transactions: The transactions of the block for which the proof is created.
+    :argument:last_hash: The previous block's hash which will be stored in the current block.
+    :argument:proof: The proof number we're testing.
+    """
+    # Create a string with all the hash inputs
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
+    print(guess)
+    # Hash the string
+    # IMPORTANT: This is NOT the same hash as will be stored in the previous_hash.
+    # It's a not a block's hash. It's only used for the proof-of-work algorithm.
     guess_hash = hash_str_256(guess)
     print(guess_hash)
+    # Only a hash (which is based on the above inputs) which starts with two 0s is treated as valid
+    # This condition is of course defined by you. You could also require 10 leading 0s -
+    # this would take significantly longer (and this allows you to control the speed at which new blocks can be added)
     return guess_hash[0:2] == "00"
 
 
 def proof_of_work():
+    """Generate a proof of work for the open transactions,
+    the hash of the previous block and a random number (which is guessed until it fits)."""
     last_block = blockchain[-1]
     last_hash = hash_block(last_block)
     proof = 0
+    # Try different PoW numbers and return the first valid one
     while not valid_proof(open_transactions, last_hash, proof):
         proof += 1
     return proof
@@ -46,12 +121,13 @@ def get_balance(participant):
     # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT
     # the sender)
     # This fetches sent amounts of transactions that were already included in blocks of the blockchain
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]
+    tx_sender = [[tx["amount"] for tx in block["transactions"] if tx["sender"] == participant] for block in blockchain]
     # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT
     # the sender)
     # This fetches sent amounts of open transactions (to avoid double spending)
     open_tx_sender = [tx["amount"] for tx in open_transactions if tx["sender"] == participant]
     tx_sender.append(open_tx_sender)
+    print(tx_sender)
     amount_sent = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0,
                          tx_sender, 0)
     # This fetches received coin amounts of transactions that were already included in blocks of the blockchain
@@ -103,6 +179,7 @@ def add_transaction(tx_recipient, tx_sender=owner, tx_amount=1.0):
         open_transactions.append(transaction)
         participants.add(tx_sender)
         participants.add(tx_recipient)
+        save_data()
         return True
     return False
 
@@ -207,6 +284,7 @@ while waiting_for_input:
     elif "2" == user_choice:
         if mine_block():
             open_transactions = []
+            save_data()
     elif "3" == user_choice:
         print_blockchain_elements()
     elif "4" == user_choice:
@@ -230,8 +308,8 @@ while waiting_for_input:
     else:
         print("Input was invalid, please pick a value from the list!")
     if not verify_chain():
-        print("Invalid blockchain!")
         print_blockchain_elements()
+        print("Invalid blockchain!")
         # Break out of the loop
         break
     print("Balance of '{}': {:6.2f}".format("Aliaksei", get_balance("Aliaksei")))
