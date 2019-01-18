@@ -5,12 +5,18 @@ from verification import Verification
 
 
 class Node:
+    """The node which runs the local blockchain instance.
+    :argument:id: The id of the node.
+    :argument:blockchain: The blockchain which is run by this node.
+    """
     def __init__(self):
+        """The constructor of the Node class."""
         # self.id = str(uuid4())
         self.id = "Aliaksei"
         self.blockchain = Blockchain(self.id)
 
-    def get_transaction_value(self):
+    @staticmethod
+    def get_transaction_value():
         """
         :return: the input of the user (a new transaction amount) as a float.
         """
@@ -19,7 +25,8 @@ class Node:
         tx_amount = float(input("Your transaction amount please: "))
         return tx_recipient, tx_amount
 
-    def get_user_choice(self):
+    @staticmethod
+    def get_user_choice():
         """ Prompts the user for its choice and return it. """
         user_input = input("Your choice: ")
         return user_input
@@ -54,14 +61,13 @@ class Node:
                     print("Added transaction!")
                 else:
                     print("Transaction failed!")
-                print(self.blockchain.open_transactions)
+                print(self.blockchain.get_open_transactions())
             elif "2" == user_choice:
                 self.blockchain.mine_block()
             elif "3" == user_choice:
                 self.print_blockchain_elements()
             elif "4" == user_choice:
-                verifier = Verification()
-                if verifier.verify_transactions(self.blockchain.open_transactions, self.blockchain.get_balance):
+                if Verification.verify_transactions(self.blockchain.get_open_transactions(), self.blockchain.get_balance):
                     print("All transactions are valid")
                 else:
                     print("There are invalid transactions")
@@ -70,8 +76,7 @@ class Node:
                 waiting_for_input = False
             else:
                 print("Input was invalid, please pick a value from the list!")
-            verifier = Verification()
-            if not verifier.verify_chain(self.blockchain.chain):
+            if not Verification.verify_chain(self.blockchain.chain):
                 self.print_blockchain_elements()
                 print("Invalid blockchain!")
                 # Break out of the loop
