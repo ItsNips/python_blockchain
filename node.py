@@ -2,6 +2,7 @@
 
 from blockchain import Blockchain
 from utility.verification import Verification
+from wallet import Wallet
 
 
 class Node:
@@ -9,11 +10,13 @@ class Node:
     :argument:id: The id of the node.
     :argument:blockchain: The blockchain which is run by this node.
     """
+
     def __init__(self):
         """The constructor of the Node class."""
-        # self.id = str(uuid4())
-        self.id = "Aliaksei"
-        self.blockchain = Blockchain(self.id)
+        # self.wallet.public_key = str(uuid4())
+        self.wallet = Wallet()
+        self.wallet.create_keys()
+        self.blockchain = Blockchain(self.wallet.public_key)
 
     @staticmethod
     def get_transaction_value():
@@ -51,26 +54,39 @@ class Node:
             print("2: Mine a new block")
             print("3: Output the blockchain blocks")
             print("4: Check transaction validity")
+            print("5: Create wallet")
+            print("6: Load wallet")
+            print("7: Save wallet keys")
             print("q: Quit")
             user_choice = self.get_user_choice()
             if "1" == user_choice:
                 tx_data = self.get_transaction_value()
                 recipient, amount = tx_data
                 # Add the transaction amount to the blockchain
-                if self.blockchain.add_transaction(recipient, self.id, amount=amount):
+                if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount=amount):
                     print("Added transaction!")
                 else:
                     print("Transaction failed!")
                 print(self.blockchain.get_open_transactions())
             elif "2" == user_choice:
-                self.blockchain.mine_block()
+                if not self.blockchain.mine_block():
+                    print("Mining failed. Got no wallet?")
             elif "3" == user_choice:
                 self.print_blockchain_elements()
             elif "4" == user_choice:
-                if Verification.verify_transactions(self.blockchain.get_open_transactions(), self.blockchain.get_balance):
+                if Verification.verify_transactions(self.blockchain.get_open_transactions(),
+                                                    self.blockchain.get_balance):
                     print("All transactions are valid")
                 else:
                     print("There are invalid transactions")
+            elif "5" == user_choice:
+                self.wallet.create_keys()
+                self.blockchain = Blockchain(self.wallet.public_key)
+            elif "6" == user_choice:
+                self.wallet.load_key()
+                self.blockchain = Blockchain(self.wallet.public_key)
+            elif "7" == user_choice:
+                self.wallet.save_keys()
             elif "q" == user_choice:
                 # This will lead to the loop to exist because it's running condition becomes False
                 waiting_for_input = False
@@ -81,12 +97,13 @@ class Node:
                 print("Invalid blockchain!")
                 # Break out of the loop
                 break
-            print("Balance of '{}': {:6.2f}".format(self.id, self.blockchain.get_balance()))
+            print("Balance of '{}': {:6.2f}".format(self.wallet.public_key, self.blockchain.get_balance()))
         else:
             print("User left!")
 
         print("Done!")
 
 
-node = Node()
-node.listen_for_input()
+if __name__ == "__main__":
+    node = Node()
+    node.listen_for_input()

@@ -20,9 +20,9 @@ class Blockchain:
     def __init__(self, hosting_node_id):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
-        self.genesis_block = Block(0, "", [], 100, 0)
+        genesis_block = Block(0, "", [], 100, 0)
         # Initializing our (empty) blockchain list
-        self.chain = [self.genesis_block]
+        self.chain = [genesis_block]
         # Unhandled transactions
         self.__open_transactions = []
         self.load_data()
@@ -150,6 +150,8 @@ class Blockchain:
         #     "recipient": tx_recipient,
         #     "amount": tx_amount
         # }
+        if self.hosting_node is None:
+            return False
         transaction = Transaction(sender, recipient, amount)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
@@ -160,6 +162,8 @@ class Blockchain:
     def mine_block(self):
         """ Create a new block and add open transactions to it. """
         # Fetch the currently last block of the blockchain
+        if self.hosting_node is None:
+            return False
         last_block = self.__chain[-1]
         # Hash the last block (=> to be able to compare it to the stored hash value)
         hashed_block = hash_block(last_block)
