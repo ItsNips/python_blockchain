@@ -1,4 +1,6 @@
 from Cryptodome.PublicKey import RSA
+from Cryptodome.Signature import PKCS1_v1_5
+from Cryptodome.Hash import SHA3_256
 import Cryptodome.Random
 import binascii
 
@@ -40,3 +42,9 @@ class Wallet:
         public_key = private_key.publickey()
         return (binascii.hexlify(private_key.exportKey(format="DER")).decode("ascii"),
                 binascii.hexlify(public_key.publickey().exportKey(format="DER")).decode("ascii"))
+
+    def sign_transaction(self, sender, recipient, amount):
+        signer = PKCS1_v1_5.new(RSA.import_key(binascii.unhexlify(self.private_key)))
+        hash_f = SHA3_256.new((str(sender) + str(recipient) + str(amount)).encode("utf8"))
+        signature = signer.sign(hash_f)
+        return binascii.hexlify(signature).decode("ascii")
