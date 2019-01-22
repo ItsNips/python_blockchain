@@ -167,12 +167,12 @@
                             </div>
                             <div v-if="view === 'chain'" class="collapse" :class="{show: showElement === index}">
                                 <div class="card-body">
-                                    <p>Previous Hash: {{ data.previous_hash }}</p>
+                                    <p><b>Previous Hash:</b> {{ data.previous_hash }}</p>
                                     <div class="list-group">
                                         <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
-                                            <div>Sender: {{ tx.sender }}</div>
-                                            <div>Recipient: {{ tx.recipient }}</div>
-                                            <div>Amount: {{ tx.amount }}</div>
+                                            <div><b>Sender:</b> {{ tx.sender }}</div>
+                                            <div><b>Recipient:</b> {{ tx.recipient }}</div>
+                                            <div><b>Amount:</b> {{ tx.amount }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -189,9 +189,9 @@
                                 <div class="card-body">
                                     <div class="list-group">
                                         <div class="list-group-item flex-column align-items-start">
-                                            <div>Sender: {{ data.sender }}</div>
-                                            <div>Recipient: {{ data.recipient }}</div>
-                                            <div>Amount: {{ data.amount }}</div>
+                                            <div><b>Sender:</b> {{ data.sender }}</div>
+                                            <div><b>Recipient:</b> {{ data.recipient }}</div>
+                                            <div><b>Amount:</b> {{ data.amount }}</div>
                                         </div>
                                     </div>
                                 </div>

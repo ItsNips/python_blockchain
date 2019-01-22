@@ -16,9 +16,9 @@ class Blockchain:
     """The Blockchain class manages the chain of blocks as well as open transactions and the node on which it's running.
     :argument:chain: The list of blocks
     :argument:open_transactions (private): The list of open transactions
-    :argument:hosting_node: The connected node (which runs the blockchain).
+    :argument:public_key: The connected node (which runs the blockchain).
     """
-    def __init__(self, hosting_node_id):
+    def __init__(self, public_key, node_id):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
         genesis_block = Block(0, "", [], 100, 0)
@@ -26,8 +26,9 @@ class Blockchain:
         self.chain = [genesis_block]
         # Unhandled transactions
         self.__open_transactions = []
-        self.hosting_node = hosting_node_id
+        self.public_key = public_key
         self.__peer_nodes = set()
+        self.node_id = node_id
         self.load_data()
 
     # This turns the chain attribute into a property with a getter (the method below) and a setter (@chain.setter)
@@ -47,7 +48,7 @@ class Blockchain:
     def load_data(self):
         """ Initialize blockchain + open transactions data from a file. """
         try:
-            with open("resources/blockchain_db.txt", mode="r") as f:
+            with open("resources/blockchain_{}.txt".format(self.node_id), mode="r") as f:
                 # file_content = pickle.loads(f.read())
                 file_content = f.readlines()
                 # blockchain = file_content["chain"]
@@ -77,7 +78,7 @@ class Blockchain:
     def save_data(self):
         """Save blockchain + open transactions snapshot to a file."""
         try:
-            with open("resources/blockchain_db.txt", mode="w") as f:
+            with open("resources/blockchain_{}.txt".format(self.node_id), mode="w") as f:
                 saveable_chain = [block.__dict__ for block in [
                     Block(block_el.index, block_el.previous_hash, [tx.__dict__ for tx in block_el.transactions],
                           block_el.proof, block_el.timestamp) for block_el in self.__chain]]
@@ -110,9 +111,9 @@ class Blockchain:
         """ Calculate the balance for a participant.
         :return: the balance for a participant
         """
-        if self.hosting_node is None:
+        if self.public_key is None:
             return None
-        participant = self.hosting_node
+        participant = self.public_key
         # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT
         # the sender)
         # This fetches sent amounts of transactions that were already included in blocks of the blockchain
@@ -159,7 +160,7 @@ class Blockchain:
         #     "recipient": tx_recipient,
         #     "amount": tx_amount
         # }
-        if self.hosting_node is None:
+        if self.public_key is None:
             return False
         transaction = Transaction(sender, recipient, signature, amount)
         if Verification.verify_transaction(transaction, self.get_balance):
@@ -171,7 +172,7 @@ class Blockchain:
     def mine_block(self):
         """ Create a new block and add open transactions to it. """
         # Fetch the currently last block of the blockchain
-        if self.hosting_node is None:
+        if self.public_key is None:
             return None
         last_block = self.__chain[-1]
         # Hash the last block (=> to be able to compare it to the stored hash value)
@@ -183,7 +184,7 @@ class Blockchain:
         #     "recipient": owner,
         #     "amount": MINING_REWARD
         # }
-        reward_transaction = Transaction("MINING", self.hosting_node, "", MINING_REWARD)
+        reward_transaction = Transaction("MINING", self.public_key, "", MINING_REWARD)
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail,
         # we don't have the reward transaction stored in the open transactions
