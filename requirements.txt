@@ -1,5 +1,13 @@
+Click
 flake8
+Flask
+Flask-Cors
+itsdangerous
+Jinja2
+MarkupSafe
 mccabe
 pycodestyle
 pycryptodomex
 pyflakes
+six
+Werkzeug
