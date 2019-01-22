@@ -42,7 +42,7 @@
                     <form @submit.prevent="onAddNode">
                         <div class="form-group">
                             <label for="node-url"><b>Node URL</b></label>
-                            <input v-model="newNodeUrl" type="text" class="form-control" id="node-url" placeholder="localhost:5001">
+                            <input v-model="newNodeUrl" type="text" class="form-control" id="node-url" placeholder="localhost:****">
                         </div>
                         <button :disabled="newNodeUrl.trim() === ''" type="submit" class="btn btn-primary">Add</button>
                     </form>

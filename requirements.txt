@@ -1,7 +1,10 @@
+certifi
+chardet
 Click
 flake8
 Flask
 Flask-Cors
+idna
 itsdangerous
 Jinja2
 MarkupSafe
@@ -9,5 +12,7 @@ mccabe
 pycodestyle
 pycryptodomex
 pyflakes
+requests
 six
+urllib3
 Werkzeug
