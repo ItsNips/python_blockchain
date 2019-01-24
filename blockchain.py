@@ -13,6 +13,9 @@ from wallet import Wallet
 MINING_REWARD = 10
 
 
+print(__name__)
+
+
 class Blockchain:
     """The Blockchain class manages the chain of blocks as well as open transactions and the node on which it's running.
     :argument:chain: The list of blocks
@@ -49,7 +52,7 @@ class Blockchain:
         return self.__open_transactions[:]
 
     def load_data(self):
-        """ Initialize blockchain + open transactions data from a file. """
+        """ Initialize blockchain + open transactions data from a file (blockchain-*.txt). """
         try:
             with open("resources/blockchain_{}.txt".format(self.node_id), mode="r") as f:
                 # file_content = pickle.loads(f.read())
@@ -57,6 +60,7 @@ class Blockchain:
                 # blockchain = file_content["chain"]
                 # open_transactions = file_content["ot"]
                 blockchain = json.loads(file_content[0][:-1])
+                # We need to convert  the loaded data because Transactions should use OrderedDict
                 updated_blockchain = []
                 for block in blockchain:
                     converted_tx = [Transaction(tx["sender"], tx["recipient"], tx["signature"], tx["amount"])
@@ -66,6 +70,7 @@ class Blockchain:
                     updated_blockchain.append(updated_block)
                 self.chain = updated_blockchain
                 open_transactions = json.loads(file_content[1][:-1])
+                # We need to convert  the loaded data because Transactions should use OrderedDict
                 updated_transactions = []
                 for tx in open_transactions:
                     updated_transaction = Transaction(tx["sender"], tx["recipient"], tx["signature"], tx["amount"])
@@ -79,7 +84,7 @@ class Blockchain:
             print("Cleanup!")
 
     def save_data(self):
-        """Save blockchain + open transactions snapshot to a file."""
+        """Save blockchain + open transactions snapshot to a file (blockchain-*.txt)."""
         try:
             with open("resources/blockchain_{}.txt".format(self.node_id), mode="w") as f:
                 saveable_chain = [block.__dict__ for block in [
@@ -229,16 +234,26 @@ class Blockchain:
         return block
 
     def add_block(self, block):
+        """Add a block which was received via broadcasting to the local blockchain."""
+        # Create a list of transaction objects
         transactions = [Transaction(tx["sender"], tx["recipient"], tx["signature"], tx["amount"]) for tx in
                         block["transactions"]]
+        # Validate the proof of work of the block and store the result (True or False) in a variable
         proof_is_valid = Verification.valid_proof(transactions[:-1], block["previous_hash"], block["proof"])
+        # Check if previous_hash stored in the block is equal to the local
+        # blockchain's last block's hash and store the result in a block
         hashes_match = hash_block(self.chain[-1]) == block["previous_hash"]
         if not proof_is_valid or not hashes_match:
             return False
+        # Create a Block object
         converted_block = Block(block["index"], block["previous_hash"], transactions, block["proof"],
                                 block["timestamp"])
         self.__chain.append(converted_block)
         stored_transactions = self.__open_transactions[:]
+        # Check which open transactions were included in the received block
+        # and remove them
+        # This could be improved by giving each transaction an ID that would
+        # uniquely identify it
         for incometx in block["transactions"]:
             for opentx in stored_transactions:
                 if opentx.sender == incometx["sender"] and opentx.recipient == incometx["recipient"] \
@@ -251,25 +266,32 @@ class Blockchain:
         return True
 
     def resolve(self):
+        """Checks all peer nodes' blockchains and replaces the local one with longer valid ones."""
+        # Initialize the winner chain with the local chain
         winner_chain = self.chain
         replace = False
         for node in self.__peer_nodes:
             url = "http://{}/chain".format(node)
             try:
+                # Send a request and store the response
                 response = requests.get(url)
+                # Retrieve the JSON data as a dictionary
                 node_chain = response.json()
+                # Convert the dictionary list to a list of block AND transaction objects
                 node_chain = [Block(block["index"], block["previous_hash"],
                                     [Transaction(tx["sender"], tx["recipient"], tx["signature"], tx["amount"]) for tx in
                                      block["transactions"]], block["proof"], block["timestamp"]) for block in
                               node_chain]
                 node_chain_length = len(node_chain)
                 local_chain_length = len(winner_chain)
+                # Store the received chain as the current winner chain if it's longer AND valid
                 if node_chain_length > local_chain_length and Verification.verify_chain(node_chain):
                     winner_chain = node_chain
                     replace = True
             except requests.exceptions.ConnectionError:
                 continue
         self.resolve_conflicts = False
+        # Replace the local chain with the winner chain
         self.chain = winner_chain
         if replace:
             self.__open_transactions = []

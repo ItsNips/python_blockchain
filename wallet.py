@@ -7,16 +7,20 @@ import binascii
 
 class Wallet:
     def __init__(self, node_id):
+        """Creates, loads and holds private and public keys. Manages transaction
+            signing and verification."""
         self.private_key = None
         self.public_key = None
         self.node_id = node_id
 
     def create_keys(self):
+        """Create a new pair of private and public keys."""
         private_key, public_key = self.generate_keys()
         self.private_key = private_key
         self.public_key = public_key
 
     def save_keys(self):
+        """Saves the keys to a file (wallet-*.txt)."""
         if self.public_key is not None and self.private_key is not None:
             try:
                 with open("resources/wallet-{}.txt".format(self.node_id), mode="w") as f:
@@ -29,6 +33,7 @@ class Wallet:
                 return False
 
     def load_key(self):
+        """Loads the keys from the wallet-*.txt file into memory."""
         try:
             with open("resources/wallet-{}.txt".format(self.node_id), mode="r") as f:
                 keys = f.readlines()
@@ -43,12 +48,18 @@ class Wallet:
 
     @staticmethod
     def generate_keys():
+        """Generate a new pair of private and public key."""
         private_key = RSA.generate(1024, Cryptodome.Random.new().read)
         public_key = private_key.publickey()
         return (binascii.hexlify(private_key.exportKey(format="DER")).decode("ascii"),
                 binascii.hexlify(public_key.publickey().exportKey(format="DER")).decode("ascii"))
 
     def sign_transaction(self, sender, recipient, amount):
+        """Sign a transaction and return the signature.
+        :argument:sender: The sender of the transaction.
+        :argument:recipient: The recipient of the transaction.
+        :argument:amount: The amount of the transaction.
+        """
         signer = PKCS1_v1_5.new(RSA.import_key(binascii.unhexlify(self.private_key)))
         hash_f = SHA3_256.new((str(sender) + str(recipient) + str(amount)).encode("utf8"))
         signature = signer.sign(hash_f)
@@ -56,6 +67,9 @@ class Wallet:
 
     @staticmethod
     def verify_transaction(transaction):
+        """Verify the signature of a transaction.
+        :argument:transaction: The transaction that should be verified.
+        """
         if transaction.sender == "MINING":
             return True
         public_key = RSA.import_key(binascii.unhexlify(transaction.sender))
