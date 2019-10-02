@@ -1,1 +1,3 @@
-# python_blockchain
+# Simple blockchain on python
+## Description
+Test project: blockchain on python.
